@@ -1,0 +1,102 @@
+services:
+  # PostgreSQL with pgvector extension
+  pgvector:
+    image: agnohq/pgvector:16
+    container_name: pgvector
+    environment:
+      - POSTGRES_DB=ai
+      - POSTGRES_USER=ai
+      - POSTGRES_PASSWORD=ai
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - pgvolume:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai -d ai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  fastapi:
+    build:
+      context: .
+      dockerfile: Dockerfile.fastapi
+    container_name: fastapi
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./uploaded_files:/app/uploaded_files
+      - ./.env:/app/.env
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - SERP_API_KEY=${SERP_API_KEY}
+      - BRAVE_API_KEY=${BRAVE_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GOOGLE_CSE_ID=${GOOGLE_CSE_ID}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - SGAI_API_KEY=${SGAI_API_KEY}
+      - COHERE_API_KEY=${COHERE_API_KEY}
+      - LANGSMITH_API_KEY=${LANGSMITH_API_KEY}
+      - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY}
+      - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
+      - TAVILY_API_KEY=${TAVILY_API_KEY}
+      - NOMIC_API_KEY=${NOMIC_API_KEY}
+      - UPLOAD_FOLDER=/app/uploaded_files
+    networks:
+      - app-network
+    depends_on:
+      pgvector:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Streamlit Frontend
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    container_name: streamlit
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./uploaded_files:/app/uploaded_files
+      - ./.env:/app/.env
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - SERP_API_KEY=${SERP_API_KEY}
+      - BRAVE_API_KEY=${BRAVE_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GOOGLE_CSE_ID=${GOOGLE_CSE_ID}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - SGAI_API_KEY=${SGAI_API_KEY}
+      - COHERE_API_KEY=${COHERE_API_KEY}
+      - LANGSMITH_API_KEY=${LANGSMITH_API_KEY}
+      - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY}
+      - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
+      - TAVILY_API_KEY=${TAVILY_API_KEY}
+      - NOMIC_API_KEY=${NOMIC_API_KEY}
+      - FASTAPI_URL=http://fastapi:8000/chat/
+      - UPLOAD_FOLDER=/app/uploaded_files
+    depends_on:
+      - fastapi
+    networks:
+      - app-network
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  uploaded_files:
+  pgvolume:
